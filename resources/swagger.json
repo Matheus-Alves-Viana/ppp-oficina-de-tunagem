@@ -1,0 +1,338 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Oficina de Tunagem API",
+    "version": "1.0.0",
+    "description": "API para acompanhamento da progressão de carros em uma oficina de tunagem."
+  },
+  "servers": [
+    { "url": "http://localhost:3000" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Mecanico": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "nome": { "type": "string" },
+          "email": { "type": "string" }
+        }
+      },
+      "Cliente": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "nome": { "type": "string" },
+          "email": { "type": "string" }
+        }
+      },
+      "Carro": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "modelo": { "type": "string" },
+          "ano": { "type": "integer" },
+          "clienteId": { "type": "integer" }
+        }
+      },
+      "Servico": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "nome": { "type": "string" },
+          "tipo": { "type": "string", "enum": ["preventiva", "tunagem"] },
+          "preco": { "type": "number" }
+        }
+      },
+      "Manutencao": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "carroId": { "type": "integer" },
+          "servicoId": { "type": "integer" },
+          "data": { "type": "string", "format": "date" },
+          "status": { "type": "string" }
+        }
+      },
+      "Orcamento": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "carroId": { "type": "integer" },
+          "servicos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "servicoId": { "type": "integer" },
+                "preco": { "type": "number" }
+              }
+            }
+          },
+          "status": { "type": "string", "enum": ["pendente", "aprovado", "rejeitado", "alterado"] },
+          "historico": {
+            "type": "array",
+            "items": { "type": "object" }
+          }
+        }
+      },
+      "Erro": {
+        "type": "object",
+        "properties": {
+          "erro": { "type": "string" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/mecanico/registrar": {
+      "post": {
+        "summary": "Registrar mecânico",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "nome": {"type": "string"}, "email": {"type": "string"}, "senha": {"type": "string"} }, "required": ["nome", "email", "senha"] }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Criado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Mecanico" } } } },
+          "400": { "description": "Email já cadastrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/mecanico/login": {
+      "post": {
+        "summary": "Login mecânico",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "email": {"type": "string"}, "senha": {"type": "string"} }, "required": ["email", "senha"] }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Token JWT", "content": { "application/json": { "schema": { "type": "object", "properties": { "token": {"type": "string"} } } } } },
+          "401": { "description": "Credenciais inválidas", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/cliente/registrar": {
+      "post": {
+        "summary": "Registrar cliente",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "nome": {"type": "string"}, "email": {"type": "string"}, "senha": {"type": "string"} }, "required": ["nome", "email", "senha"] }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Criado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Cliente" } } } },
+          "400": { "description": "Email já cadastrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/cliente/login": {
+      "post": {
+        "summary": "Login cliente",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "email": {"type": "string"}, "senha": {"type": "string"} }, "required": ["email", "senha"] }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Token JWT", "content": { "application/json": { "schema": { "type": "object", "properties": { "token": {"type": "string"} } } } } },
+          "401": { "description": "Credenciais inválidas", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/carro": {
+      "post": {
+        "summary": "Registrar carro",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "modelo": {"type": "string"}, "ano": {"type": "integer"}, "clienteId": {"type": "integer"} }, "required": ["modelo", "ano", "clienteId"] }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Criado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Carro" } } } },
+          "404": { "description": "Cliente não encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      },
+      "get": {
+        "summary": "Buscar carros",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "clienteId", "in": "query", "schema": { "type": "integer" }, "required": false }
+        ],
+        "responses": {
+          "200": { "description": "Lista de carros", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Carro" } } } } }
+        }
+      }
+    },
+    "/carro/{id}": {
+      "get": {
+        "summary": "Buscar carro por ID",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Carro encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Carro" } } } },
+          "404": { "description": "Carro não encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/servico": {
+      "post": {
+        "summary": "Registrar serviço",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "nome": {"type": "string"}, "tipo": {"type": "string"}, "preco": {"type": "number"} }, "required": ["nome", "tipo", "preco"] }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Criado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Servico" } } } },
+          "400": { "description": "Tipo de serviço inválido", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      },
+      "get": {
+        "summary": "Buscar serviços",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Lista de serviços", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Servico" } } } } }
+        }
+      }
+    },
+    "/manutencao": {
+      "post": {
+        "summary": "Registrar manutenção",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "carroId": {"type": "integer"}, "servicoId": {"type": "integer"}, "data": {"type": "string", "format": "date"}, "status": {"type": "string"} }, "required": ["carroId", "servicoId", "data", "status"] }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Criado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Manutencao" } } } },
+          "404": { "description": "Carro ou serviço não encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/manutencao/{carroId}": {
+      "get": {
+        "summary": "Buscar manutenções por carro",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "carroId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Lista de manutenções", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Manutencao" } } } } }
+        }
+      }
+    },
+    "/orcamento": {
+      "post": {
+        "summary": "Criar orçamento",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "carroId": {"type": "integer"}, "servicos": {"type": "array", "items": {"type": "object", "properties": {"servicoId": {"type": "integer"}, "preco": {"type": "number"}}} } }, "required": ["carroId", "servicos"] }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Criado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Orcamento" } } } },
+          "404": { "description": "Carro não encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/orcamento/carro/{carroId}": {
+      "get": {
+        "summary": "Buscar orçamentos por carro",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "carroId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Lista de orçamentos", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Orcamento" } } } } }
+        }
+      }
+    },
+    "/orcamento/{id}/aprovar": {
+      "post": {
+        "summary": "Aprovar orçamento",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Orçamento aprovado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Orcamento" } } } },
+          "404": { "description": "Orçamento não encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/orcamento/{id}/rejeitar": {
+      "post": {
+        "summary": "Rejeitar orçamento",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Orçamento rejeitado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Orcamento" } } } },
+          "404": { "description": "Orçamento não encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    },
+    "/orcamento/{id}/alterar": {
+      "put": {
+        "summary": "Alterar orçamento",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "servicos": {"type": "array", "items": {"type": "object", "properties": {"servicoId": {"type": "integer"}, "preco": {"type": "number"}}} } }, "required": ["servicos"] }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Orçamento alterado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Orcamento" } } } },
+          "404": { "description": "Orçamento não encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Erro" } } } }
+        }
+      }
+    }
+  }
+}
